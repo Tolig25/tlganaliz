@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1><i class="fas fa-shield-alt"></i> Admin Panel</h1>
+    <div class="admin-actions">
+        <span class="status-badge {{ 'online' if api_status == 'ONLINE' else 'offline' }}">
+            <i class="fas fa-circle"></i>
+            API {{ api_status }}
+        </span>
+    </div>
+</div>
+
+<!-- İstatistik Kartları -->
+<div class="admin-stats">
+    <div class="stat-box">
+        <i class="fas fa-users" style="color: #3b82f6;"></i>
+        <div class="stat-info">
+            <h3>{{ stats.total_users }}</h3>
+            <span>Kullanıcı</span>
+        </div>
+    </div>
+    <div class="stat-box">
+        <i class="fas fa-chart-bar" style="color: #10b981;"></i>
+        <div class="stat-info">
+            <h3>{{ stats.total_stocks }}</h3>
+            <span>Hisse</span>
+        </div>
+    </div>
+    <div class="stat-box">
+        <i class="fas fa-brain" style="color: #8b5cf6;"></i>
+        <div class="stat-info">
+            <h3>{{ stats.total_predictions }}</h3>
+            <span>Tahmin</span>
+        </div>
+    </div>
+    <div class="stat-box">
+        <i class="fas fa-percentage" style="color: #f59e0b;"></i>
+        <div class="stat-info">
+            <h3>%{{ stats.success_rate }}</h3>
+            <span>Başarı</span>
+        </div>
+    </div>
+</div>
+
+<div class="admin-grid">
+    <!-- Sistem Durumu -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-server"></i> Sistem Durumu</h3>
+        </div>
+        <div class="card-body">
+            <div class="status-list">
+                <div class="status-item">
+                    <span>AI Motor</span>
+                    <span class="badge {{ 'badge-success' if ai_running else 'badge-danger' }}">
+                        {{ 'Çalışıyor' if ai_running else 'Durdu' }}
+                    </span>
+                </div>
+                <div class="status-item">
+                    <span>Veritabanı</span>
+                    <span class="badge badge-success">Bağlı</span>
+                </div>
+                <div class="status-item">
+                    <span>Son Kontrol</span>
+                    <span class="text-muted">{{ last_check[:19] if last_check else '-' }}</span>
+                </div>
+                <div class="status-item">
+                    <span>Bugün Giriş</span>
+                    <span>{{ stats.today_logins }}</span>
+                </div>
+                <div class="status-item">
+                    <span>Bugün Tahmin</span>
+                    <span>{{ stats.today_predictions }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI İstatistikleri -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-robot"></i> AI Öğrenme</h3>
+        </div>
+        <div class="card-body">
+            <div class="status-list">
+                <div class="status-item">
+                    <span>Öğrenme Kalıpları</span>
+                    <span>{{ ai_stats.total_patterns or 0 }}</span>
+                </div>
+                <div class="status-item">
+                    <span>Ort. Başarı Oranı</span>
+                    <span>%{{ "%.1f"|format(ai_stats.avg_success_rate) if ai_stats else '0.0' }}</span>
+                </div>
+                <div class="status-item">
+                    <span>Bekleyen Tahminler</span>
+                    <span>{{ stats.pending_predictions }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sistem Hataları -->
+{% if errors %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Aktif Hatalar ({{ errors|length }})</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Tip</th>
+                        <th>Mesaj</th>
+                        <th>Konum</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for error in errors %}
+                    <tr>
+                        <td>{{ error.detected_at[:16] }}</td>
+                        <td><span class="badge badge-danger">{{ error.error_type }}</span></td>
+                        <td>{{ error.message[:50] }}{% if error.message|length > 50 %}...{% endif %}</td>
+                        <td><code>{{ error.location }}</code></td>
+                        <td>
+                            <button onclick="resolveError({{ error.id }})" class="btn btn-sm btn-success">
+                                <i class="fas fa-check"></i> Çözüldü
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Son Loglar -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-clipboard-list"></i> Son Loglar</h3>
+        <a href="/admin/logs" class="btn btn-sm btn-secondary">Tümünü Gör</a>
+    </div>
+    <div class="card-body">
+        <div class="log-list">
+            {% for log in recent_logs %}
+            <div class="log-item {{ log.log_type|lower }}">
+                <span class="log-time">{{ log.created_at[11:16] }}</span>
+                <span class="log-type">{{ log.log_type }}</span>
+                <span class="log-action">{{ log.action }}</span>
+                <span class="log-details">{{ log.details[:40] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.admin-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-header h1 i {
+    color: var(--danger);
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge.online {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.status-badge.offline {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.status-badge i {
+    font-size: 0.5rem;
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-box {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-box i {
+    font-size: 2.5rem;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.stat-box h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+.stat-box span {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    font-size: 0.9375rem;
+}
+
+.status-item span:first-child {
+    color: var(--gray-600);
+}
+
+.status-item span:last-child {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.log-item {
+    display: grid;
+    grid-template-columns: 50px 80px 1fr 1fr;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    align-items: center;
+}
+
+.log-item:nth-child(odd) {
+    background: var(--gray-50);
+}
+
+.log-time {
+    color: var(--gray-400);
+    font-size: 0.75rem;
+}
+
+.log-type {
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.log-item.system .log-type {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+}
+
+.log-item.error .log-type {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.log-action {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.log-details {
+    color: var(--gray-500);
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    .admin-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .stat-box {
+        padding: 1rem;
+    }
+    
+    .stat-box h3 {
+        font-size: 1.5rem;
+    }
+    
+    .log-item {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+}
+</style>
+
+<script>
+async function resolveError(errorId) {
+    if (!confirm('Bu hata çözüldü olarak işaretlenecek. Emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/resolve_error', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({error_id: errorId})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'İşlem başarısız'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+}
+</script>
+{% endblock %}

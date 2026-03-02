@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Sistem Logları - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1><i class="fas fa-clipboard-list"></i> Sistem Logları</h1>
+    <a href="/admin/" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Panele Dön
+    </a>
+</div>
+
+<!-- Filtreler -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-body">
+        <form method="GET" class="filter-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Log Tipi</label>
+                    <select name="type" onchange="this.form.submit()">
+                        <option value="all" {{ 'selected' if request.args.get('type') == 'all' or not request.args.get('type') }}>Tümü</option>
+                        <option value="SYSTEM" {{ 'selected' if request.args.get('type') == 'SYSTEM' }}>Sistem</option>
+                        <option value="ERROR" {{ 'selected' if request.args.get('type') == 'ERROR' }}>Hata</option>
+                        <option value="LOGIN" {{ 'selected' if request.args.get('type') == 'LOGIN' }}>Giriş</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Başlangıç</label>
+                    <input type="date" name="from" value="{{ request.args.get('from', '') }}">
+                </div>
+                <div class="form-group">
+                    <label>Bitiş</label>
+                    <input type="date" name="to" value="{{ request.args.get('to', '') }}">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filtrele
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Sistem Logları -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title">Sistem Logları ({{ logs|length }})</h3>
+    </div>
+    <div class="card-body">
+        <div class="log-container">
+            {% for log in logs %}
+            <div class="log-entry {{ log.log_type|lower }}">
+                <div class="log-meta">
+                    <span class="log-time">{{ log.created_at }}</span>
+                    <span class="log-type-badge">{{ log.log_type }}</span>
+                    {% if log.user_id %}
+                    <span class="log-user">User #{{ log.user_id }}</span>
+                    {% endif %}
+                </div>
+                <div class="log-content">
+                    <strong>{{ log.action }}</strong>
+                    <p>{{ log.details }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Tahmin Logları -->
+{% if pred_logs %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Tahmin Logları ({{ pred_logs|length }})</h3>
+    </div>
+    <div class="card-body">
+        <div class="log-container">
+            {% for log in pred_logs %}
+            <div class="log-entry prediction">
+                <div class="log-meta">
+                    <span class="log-time">{{ log.created_at }}</span>
+                    <span class="log-type-badge info">{{ log.log_type }}</span>
+                    <span class="log-user">{{ log.username }}</span>
+                </div>
+                <div class="log-content">
+                    <strong>{{ log.stock_symbol }} - {{ log.message }}</strong>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.admin-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-header h1 i {
+    color: var(--info);
+}
+
+.filter-form .form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-form .form-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.filter-form label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.filter-form input,
+.filter-form select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 0.9375rem;
+}
+
+.log-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.log-entry {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.log-entry:nth-child(odd) {
+    background: var(--gray-50);
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.log-time {
+    font-size: 0.75rem;
+    color: var(--gray-400);
+    font-family: monospace;
+}
+
+.log-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    width: fit-content;
+}
+
+.log-entry.system .log-type-badge {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+}
+
+.log-entry.error .log-type-badge {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.log-entry.login .log-type-badge {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.log-entry.prediction .log-type-badge.info {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--primary-light);
+}
+
+.log-user {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.log-content strong {
+    color: var(--gray-800);
+    font-size: 0.9375rem;
+}
+
+.log-content p {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    margin: 0.25rem 0 0;
+}
+
+@media (max-width: 768px) {
+    .log-entry {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .filter-form .form-row {
+        flex-direction: column;
+    }
+    
+    .filter-form .form-group,
+    .filter-form button {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

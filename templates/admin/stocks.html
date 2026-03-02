@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Hisse Yönetimi - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1><i class="fas fa-chart-bar"></i> Hisse Yönetimi</h1>
+    <a href="/admin/" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Panele Dön
+    </a>
+</div>
+
+<!-- Yeni Hisse Ekle -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-plus"></i> Yeni Hisse Ekle</h3>
+    </div>
+    <div class="card-body">
+        <form onsubmit="return addStock(event)" class="add-stock-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sembol</label>
+                    <input type="text" id="newSymbol" placeholder="Örn: THYAO.IS" required maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label>İsim</label>
+                    <input type="text" id="newName" placeholder="Şirket adı">
+                </div>
+                <div class="form-group">
+                    <label>Sektör</label>
+                    <select id="newSector">
+                        <option value="Bankacılık">Bankacılık</option>
+                        <option value="Havacılık">Havacılık</option>
+                        <option value="Savunma">Savunma</option>
+                        <option value="Holding">Holding</option>
+                        <option value="Perakende">Perakende</option>
+                        <option value="Sanayi">Sanayi</option>
+                        <option value="Kimya">Kimya</option>
+                        <option value="Otomotiv">Otomotiv</option>
+                        <option value="Teknoloji">Teknoloji</option>
+                        <option value="Diğer" selected>Diğer</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Ekle
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Hisse Listesi -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Tüm Hisseler ({{ stocks|length }})</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Sembol</th>
+                        <th>İsim</th>
+                        <th>Sektör</th>
+                        <th>Durum</th>
+                        <th>Tahmin</th>
+                        <th>Favori</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in stocks %}
+                    <tr>
+                        <td><strong>{{ stock.symbol }}</strong></td>
+                        <td>{{ stock.name }}</td>
+                        <td><span class="badge badge-info">{{ stock.sector }}</span></td>
+                        <td>
+                            {% if stock.is_active %}
+                            <span class="badge badge-success">Aktif</span>
+                            {% else %}
+                            <span class="badge badge-warning">Pasif</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ stock.pred_count }}</td>
+                        <td>{{ stock.fav_count }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button onclick="stockAction('{{ stock.symbol }}', 'toggle')" 
+                                        class="btn btn-sm {{ 'btn-success' if stock.is_active else 'btn-warning' }}">
+                                    <i class="fas fa-{{ 'eye' if stock.is_active else 'eye-slash' }}"></i>
+                                </button>
+                                <button onclick="stockAction('{{ stock.symbol }}', 'delete')" 
+                                        class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.admin-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-header h1 i {
+    color: var(--success);
+}
+
+.add-stock-form .form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.add-stock-form .form-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.add-stock-form .form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.add-stock-form input,
+.add-stock-form select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 0.9375rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .add-stock-form .form-row {
+        flex-direction: column;
+    }
+    
+    .add-stock-form .form-group,
+    .add-stock-form button {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+async function addStock(e) {
+    e.preventDefault();
+    
+    const symbol = document.getElementById('newSymbol').value.toUpperCase().trim();
+    const name = document.getElementById('newName').value.trim();
+    const sector = document.getElementById('newSector').value;
+    
+    try {
+        const response = await fetch('/admin/stock', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'add',
+                symbol: symbol,
+                name: name,
+                sector: sector
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'Eklenemedi'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+    
+    return false;
+}
+
+async function stockAction(symbol, action) {
+    const actionText = action === 'toggle' ? 'durum değiştirme' : 'silme';
+    
+    if (!confirm(`${symbol} hissesi için ${actionText} yapılacak. Emin misiniz?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/stock', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: action,
+                symbol: symbol
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'İşlem başarısız'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+}
+</script>
+{% endblock %}

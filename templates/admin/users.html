@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Kullanıcı Yönetimi - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1><i class="fas fa-users"></i> Kullanıcı Yönetimi</h1>
+    <a href="/admin/" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Panele Dön
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Tüm Kullanıcılar ({{ users|length }})</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Kullanıcı Adı</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th>Kayıt</th>
+                        <th>Son Giriş</th>
+                        <th>Tahmin</th>
+                        <th>Favori</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            <strong>{{ user.username }}</strong>
+                            {% if user.id == session.user_id %}
+                            <span class="badge badge-info">Siz</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_admin %}
+                            <span class="badge badge-danger">Admin</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Kullanıcı</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_active %}
+                            <span class="badge badge-success">Aktif</span>
+                            {% else %}
+                            <span class="badge badge-warning">Pasif</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at[:10] }}</td>
+                        <td>{{ user.last_login[:16] if user.last_login else '-' }}</td>
+                        <td>{{ user.pred_count }}</td>
+                        <td>{{ user.fav_count }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button onclick="userAction({{ user.id }}, 'toggle_admin')" 
+                                        class="btn btn-sm {{ 'btn-warning' if user.is_admin else 'btn-secondary' }}"
+                                        {{ 'disabled' if user.id == session.user_id }}>
+                                    <i class="fas fa-shield-alt"></i>
+                                </button>
+                                <button onclick="userAction({{ user.id }}, 'toggle_active')" 
+                                        class="btn btn-sm {{ 'btn-success' if user.is_active else 'btn-warning' }}">
+                                    <i class="fas fa-{{ 'check' if user.is_active else 'ban' }}"></i>
+                                </button>
+                                <button onclick="userAction({{ user.id }}, 'delete')" 
+                                        class="btn btn-sm btn-danger"
+                                        {{ 'disabled' if user.id == session.user_id }}>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.admin-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-header h1 i {
+    color: var(--primary);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons .btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .table th:nth-child(1),
+    .table td:nth-child(1),
+    .table th:nth-child(5),
+    .table td:nth-child(5),
+    .table th:nth-child(7),
+    .table td:nth-child(7),
+    .table th:nth-child(8),
+    .table td:nth-child(8) {
+        display: none;
+    }
+}
+</style>
+
+<script>
+async function userAction(userId, action) {
+    const actionNames = {
+        'toggle_admin': 'admin durumunu değiştirme',
+        'toggle_active': 'aktif/pasif durumunu değiştirme',
+        'delete': 'silme'
+    };
+    
+    if (!confirm(`Kullanıcı #${userId} ${actionNames[action]} işlemi yapılacak. Emin misiniz?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/user/${userId}/action`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: action})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'İşlem başarısız'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}İndikatör Yönetimi - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1><i class="fas fa-sliders-h"></i> İndikatör Yönetimi</h1>
+    <a href="/admin/" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Panele Dön
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Teknik İndikatörler ({{ indicators|length }})</h3>
+    </div>
+    <div class="card-body">
+        <div class="indicators-grid">
+            {% for ind in indicators %}
+            <div class="indicator-box {{ 'active' if ind.is_active else 'inactive' }}">
+                <div class="indicator-color" style="background: {{ ind.color }};"></div>
+                <div class="indicator-info">
+                    <h4>{{ ind.display_name }}</h4>
+                    <span class="indicator-name">{{ ind.name }}</span>
+                    <p class="indicator-desc">{{ ind.description }}</p>
+                    <span class="indicator-params">Parametreler: {{ ind.parameters }}</span>
+                </div>
+                <div class="indicator-actions">
+                    <label class="toggle-switch">
+                        <input type="checkbox" 
+                               {{ 'checked' if ind.is_active }} 
+                               onchange="toggleIndicator('{{ ind.name }}', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.admin-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-header h1 i {
+    color: var(--info);
+}
+
+.indicators-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.indicator-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-xl);
+    background: var(--gray-50);
+    border: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.indicator-box.active {
+    background: var(--white);
+    border-color: var(--gray-200);
+    box-shadow: var(--shadow);
+}
+
+.indicator-box.inactive {
+    opacity: 0.6;
+}
+
+.indicator-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 0.5rem;
+}
+
+.indicator-info {
+    flex: 1;
+}
+
+.indicator-info h4 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+.indicator-name {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.indicator-desc {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin: 0.5rem 0;
+}
+
+.indicator-params {
+    font-size: 0.75rem;
+    color: var(--gray-400);
+    font-family: monospace;
+}
+
+.indicator-actions {
+    flex-shrink: 0;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--gray-300);
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--primary);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+</style>
+
+<script>
+async function toggleIndicator(name, isActive) {
+    try {
+        const response = await fetch('/admin/indicator', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: name,
+                is_active: isActive
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'Güncellenemedi'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+}
+</script>
+{% endblock %}

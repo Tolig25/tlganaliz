@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Sistem Ayarları - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1><i class="fas fa-server"></i> Sistem Ayarları</h1>
+    <a href="/admin/" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Panele Dön
+    </a>
+</div>
+
+<div class="settings-grid">
+    <!-- AI Motor -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-robot"></i> AI Motor</h3>
+        </div>
+        <div class="card-body">
+            <div class="status-display">
+                <span>Durum:</span>
+                <span class="badge {{ 'badge-success' if ai_running else 'badge-danger' }}">
+                    {{ 'Çalışıyor' if ai_running else 'Durdu' }}
+                </span>
+            </div>
+            {% if last_check %}
+            <div class="status-display">
+                <span>Son Kontrol:</span>
+                <span>{{ last_check[:19] }}</span>
+            </div>
+            {% endif %}
+            <div class="action-buttons" style="margin-top: 1rem;">
+                <button onclick="systemAction('restart_ai')" class="btn btn-primary">
+                    <i class="fas fa-sync"></i> Yeniden Başlat
+                </button>
+                <button onclick="systemAction('verify_now')" class="btn btn-secondary">
+                    <i class="fas fa-check-double"></i> Şimdi Doğrula
+                </button>
+                <button onclick="systemAction('cleanup_now')" class="btn btn-warning">
+                    <i class="fas fa-broom"></i> Temizlik Yap
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Veri Yönetimi -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-database"></i> Veri Yönetimi</h3>
+        </div>
+        <div class="card-body">
+            <div class="danger-zone">
+                <p class="warning-text">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Bu işlemler geri alınamaz!
+                </p>
+                <div class="action-buttons">
+                    <button onclick="systemAction('clear_logs')" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Logları Temizle
+                    </button>
+                    <button onclick="systemAction('clear_predictions')" class="btn btn-danger">
+                        <i class="fas fa-brain"></i> Tahminleri Sil
+                    </button>
+                    <button onclick="systemAction('reset_users')" class="btn btn-danger">
+                        <i class="fas fa-users"></i> Kullanıcıları Sıfırla
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Site Ayarları -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-cog"></i> Site Ayarları</h3>
+        </div>
+        <div class="card-body">
+            <form onsubmit="return updateSettings(event)" class="settings-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Site Adı</label>
+                        <input type="text" id="siteName" value="{{ settings.get('site_name', 'TLG Analiz Pro') }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Log Tutma (Gün)</label>
+                        <input type="number" id="logRetention" value="{{ settings.get('log_retention_days', '30') }}" min="1" max="365">
+                    </div>
+                    <div class="form-group">
+                        <label>Min. Güven (%)</label>
+                        <input type="number" id="minConfidence" value="{{ settings.get('min_confidence', '60') }}" min="50" max="95">
+                    </div>
+                    <div class="form-group">
+                        <label>Bakım Modu</label>
+                        <select id="maintenanceMode">
+                            <option value="0" {{ 'selected' if settings.get('maintenance_mode') != '1' }}>Kapalı</option>
+                            <option value="1" {{ 'selected' if settings.get('maintenance_mode') == '1' }}>Açık</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Ayarları Kaydet
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.admin-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-header h1 i {
+    color: var(--gray-600);
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.status-display {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.danger-zone {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+}
+
+.warning-text {
+    color: var(--danger);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.settings-form .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.settings-form label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.settings-form input,
+.settings-form select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 0.9375rem;
+}
+
+@media (max-width: 768px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+async function systemAction(action) {
+    const confirmMessages = {
+        'restart_ai': 'AI motoru yeniden başlatılacak. Emin misiniz?',
+        'verify_now': 'Tüm tahminler şimdi doğrulanacak. Bu işlem zaman alabilir.',
+        'cleanup_now': 'Eski loglar temizlenecek. Emin misiniz?',
+        'clear_logs': 'TÜM loglar silinecek. Bu işlem geri alınamaz!',
+        'clear_predictions': 'TÜM tahminler silinecek. Bu işlem geri alınamaz!',
+        'reset_users': 'Admin hariç TÜM kullanıcılar silinecek. Bu işlem geri alınamaz!'
+    };
+    
+    if (!confirm(confirmMessages[action] || 'Bu işlemi yapmak istediğinize emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
+        
+        const response = await fetch('/admin/system/action', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: action})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('İşlem başarılı!');
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'İşlem başarısız'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+}
+
+async function updateSettings(e) {
+    e.preventDefault();
+    
+    const settings = [
+        {key: 'site_name', value: document.getElementById('siteName').value},
+        {key: 'log_retention_days', value: document.getElementById('logRetention').value},
+        {key: 'min_confidence', value: document.getElementById('minConfidence').value},
+        {key: 'maintenance_mode', value: document.getElementById('maintenanceMode').value}
+    ];
+    
+    try {
+        for (const setting of settings) {
+            await fetch('/admin/system/action', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    action: 'update_setting',
+                    key: setting.key,
+                    value: setting.value
+                })
+            });
+        }
+        
+        alert('Ayarlar kaydedildi!');
+        window.location.reload();
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+    
+    return false;
+}
+</script>
+{% endblock %}
