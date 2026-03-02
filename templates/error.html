@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Hata {{ error_code }} - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-code">{{ error_code }}</div>
+    <div class="error-icon">
+        <i class="fas fa-{{ 'exclamation-circle' if error_code >= 500 else 'lock' if error_code == 403 else 'search' }}"></i>
+    </div>
+    <h1>{{ error_message }}</h1>
+    <p>Bir sorun oluştu. Lütfen daha sonra tekrar deneyin veya ana sayfaya dönün.</p>
+    <a href="/dashboard" class="btn btn-primary btn-lg">
+        <i class="fas fa-home"></i>
+        Ana Sayfaya Dön
+    </a>
+</div>
+
+<style>
+.error-container {
+    min-height: calc(100vh - 150px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+.error-code {
+    font-size: 8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 1rem;
+}
+
+.error-icon {
+    font-size: 4rem;
+    color: var(--gray-400);
+    margin-bottom: 1.5rem;
+}
+
+.error-container h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+}
+
+.error-container p {
+    color: var(--gray-500);
+    margin-bottom: 2rem;
+    max-width: 400px;
+}
+
+@media (max-width: 768px) {
+    .error-code {
+        font-size: 5rem;
+    }
+    
+    .error-icon {
+        font-size: 3rem;
+    }
+}
+</style>
+{% endblock %}

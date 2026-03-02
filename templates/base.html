@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>{% block title %}TLG Analiz Pro{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="/dashboard">
+                <i class="fas fa-chart-line"></i>
+                <span>TLG Analiz</span>
+            </a>
+        </div>
+        
+        {% if session.user_id %}
+        <!-- Hamburger Menu Button - Sağ Üst -->
+        <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Menü">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Side Menu (Hamburger Menü İçeriği) -->
+        <div id="sideMenu" class="side-menu">
+            <div class="menu-header">
+                <span class="menu-title">Menü</span>
+                <button class="close-btn" onclick="toggleMenu()" aria-label="Kapat">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Kullanıcı Bilgisi -->
+            <div class="menu-user">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <span class="username">{{ session.username }}</span>
+                    {% if session.is_admin %}
+                    <span class="admin-badge">Admin</span>
+                    {% else %}
+                    <span class="user-badge">Kullanıcı</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Menü Öğeleri -->
+            <ul class="menu-items">
+                <li class="menu-section">Ana Menü</li>
+                <li>
+                    <a href="/dashboard">
+                        <i class="fas fa-home"></i>
+                        <span>Ana Sayfa</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/predictions">
+                        <i class="fas fa-brain"></i>
+                        <span>Tahminlerim</span>
+                        <span class="badge" id="predBadge" style="display:none;">0</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/transaction_history">
+                        <i class="fas fa-history"></i>
+                        <span>İşlem Geçmişi</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/batch_analysis">
+                        <i class="fas fa-search-dollar"></i>
+                        <span>Toplu Analiz</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/favorites">
+                        <i class="fas fa-star"></i>
+                        <span>Favorilerim</span>
+                    </a>
+                </li>
+                
+                <li class="menu-divider"></li>
+                <li class="menu-section">Hesap</li>
+                <li>
+                    <a href="/settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Ayarlar</span>
+                    </a>
+                </li>
+                
+                {% if session.is_admin %}
+                <li class="menu-divider"></li>
+                <li class="menu-section">Admin Paneli</li>
+                <li>
+                    <a href="/admin/">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/users">
+                        <i class="fas fa-users"></i>
+                        <span>Kullanıcılar</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/stocks">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Hisseler</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/indicators">
+                        <i class="fas fa-sliders-h"></i>
+                        <span>İndikatörler</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/system">
+                        <i class="fas fa-server"></i>
+                        <span>Sistem</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/logs">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Loglar</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="menu-divider"></li>
+                <li>
+                    <a href="/logout" class="logout-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Çıkış Yap</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Overlay (Menü açıkken arka planı karart) -->
+        <div id="menuOverlay" class="menu-overlay" onclick="toggleMenu()"></div>
+        {% endif %}
+    </nav>
+
+    <!-- Flash Messages (Bildirimler) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'error' else 'info-circle' }}"></i>
+                        <span>{{ message }}</span>
+                        <button onclick="this.parentElement.remove()" class="close-alert">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 TLG Analiz Pro v2.0 | Gerçek Zamanlı BIST Analizi</p>
+        <p class="footer-links">
+            <a href="/dashboard">Ana Sayfa</a>
+            <span>|</span>
+            <a href="/predictions">Tahminler</a>
+            {% if session.is_admin %}
+            <span>|</span>
+            <a href="/admin/">Admin</a>
+            {% endif %}
+        </p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Hamburger Menü Toggle
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.getElementById('menuOverlay');
+            const body = document.body;
+            
+            menu.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            // Scroll kilidi
+            if (menu.classList.contains('active')) {
+                body.style.overflow = 'hidden';
+            } else {
+                body.style.overflow = '';
+            }
+        }
+        
+        // ESC tuşu ile menüyü kapat
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const menu = document.getElementById('sideMenu');
+                if (menu.classList.contains('active')) {
+                    toggleMenu();
+                }
+            }
+        });
+        
+        // Flash mesajlarını otomatik kapat
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateX(100%)';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 5000);
+        
+        // Aktif menü öğesini işaretle
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.menu-items a').forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Tahmin sayısını güncelle (varsa)
+            updatePredictionBadge();
+        });
+        
+        // Tahmin badge güncelleme
+        async function updatePredictionBadge() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                if (stats.pending_predictions > 0) {
+                    const badge = document.getElementById('predBadge');
+                    if (badge) {
+                        badge.textContent = stats.pending_predictions;
+                        badge.style.display = 'inline-block';
+                    }
+                }
+            } catch (e) {
+                console.log('Stats yüklenemedi');
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

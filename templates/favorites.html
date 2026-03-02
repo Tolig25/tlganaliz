@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Favorilerim - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-star"></i> Favorilerim</h1>
+    <p>Takip ettiğiniz hisseler</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            Favori Hisseler ({{ favorites|length }})
+        </h3>
+        <a href="/dashboard" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus"></i>
+            Hisse Ekle
+        </a>
+    </div>
+    <div class="card-body">
+        {% if favorites %}
+        <div class="favorites-grid">
+            {% for fav in favorites %}
+            <div class="favorite-card">
+                <div class="favorite-header">
+                    <div>
+                        <h4>{{ fav.symbol }}</h4>
+                        <span class="stock-name">{{ fav.name }}</span>
+                    </div>
+                    <button onclick="removeFavorite('{{ fav.symbol }}')" class="btn btn-icon btn-danger btn-sm">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                
+                <div class="favorite-price">
+                    <span class="price">{{ "%.2f"|format(fav.price) }} ₺</span>
+                    <span class="change {% if fav.change > 0 %}up{% elif fav.change < 0 %}down{% endif %}">
+                        <i class="fas fa-{{ 'arrow-up' if fav.change > 0 else 'arrow-down' if fav.change < 0 else 'minus' }}"></i>
+                        {{ "%.2f"|format(fav.change) }}%
+                    </span>
+                </div>
+                
+                <div class="favorite-info">
+                    <span class="sector">{{ fav.sector }}</span>
+                    <span class="date">Eklenme: {{ fav.added_at[:10] }}</span>
+                </div>
+                
+                <div class="favorite-actions">
+                    <a href="/stock/{{ fav.symbol }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-chart-bar"></i>
+                        Detay
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-star"></i>
+            <p>Henüz favori hisseniz yok.</p>
+            <a href="/dashboard" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Hisse Ara
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-header h1 i {
+    color: var(--warning);
+}
+
+.page-header p {
+    color: var(--gray-500);
+}
+
+.favorites-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.favorite-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.favorite-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.favorite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.favorite-header h4 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+.stock-name {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.favorite-price {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+}
+
+.favorite-price .price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.favorite-price .change {
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.favorite-price .change.up {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.favorite-price .change.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.favorite-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-bottom: 1rem;
+}
+
+.favorite-info .sector {
+    background: var(--primary-light);
+    color: var(--white);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+}
+
+.favorite-actions .btn {
+    width: 100%;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-500);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .favorites-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+async function removeFavorite(symbol) {
+    if (!confirm(`${symbol} favorilerden kaldırılsın mı?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/favorite/${symbol}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'Bilinmeyen hata'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    }
+}
+</script>
+{% endblock %}

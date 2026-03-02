@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Ayarlar - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-cog"></i> Hesap Ayarları</h1>
+    <p>Profil ve uygulama ayarlarınızı yönetin</p>
+</div>
+
+<div class="settings-grid">
+    <!-- Tema Ayarları -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-palette"></i>
+                Görünüm
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="/settings">
+                <div class="form-group">
+                    <label class="form-label">Tema</label>
+                    <div class="theme-options">
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="light" {% if settings.get('theme') != 'dark' %}checked{% endif %}>
+                            <div class="theme-preview light">
+                                <i class="fas fa-sun"></i>
+                                <span>Açık</span>
+                            </div>
+                        </label>
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="dark" {% if settings.get('theme') == 'dark' %}checked{% endif %}>
+                            <div class="theme-preview dark">
+                                <i class="fas fa-moon"></i>
+                                <span>Koyu</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Bildirimler</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="notifications" value="1" {% if settings.get('notifications') != '0' %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Tahmin sonuçlarını bildir</span>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-save"></i>
+                    Kaydet
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Hesap Bilgileri -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-user-shield"></i>
+                Hesap Güvenliği
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="info-row">
+                <span>Kullanıcı Adı:</span>
+                <strong>{{ session.username }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Hesap Türü:</span>
+                <strong>{{ 'Admin' if session.is_admin else 'Kullanıcı' }}</strong>
+            </div>
+            
+            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--gray-200);">
+            
+            <p class="text-muted" style="margin-bottom: 1rem;">
+                Şifre değiştirme özelliği yakında eklenecektir.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+}
+
+.page-header p {
+    color: var(--gray-500);
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.theme-options {
+    display: flex;
+    gap: 1rem;
+}
+
+.theme-option {
+    flex: 1;
+    cursor: pointer;
+}
+
+.theme-option input {
+    display: none;
+}
+
+.theme-preview {
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+    text-align: center;
+    border: 2px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.theme-option input:checked + .theme-preview {
+    border-color: var(--primary);
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.theme-preview i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.theme-preview.light i {
+    color: #f59e0b;
+}
+
+.theme-preview.dark i {
+    color: #6366f1;
+}
+
+.theme-preview span {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    display: none;
+}
+
+.toggle-slider {
+    width: 50px;
+    height: 26px;
+    background: var(--gray-300);
+    border-radius: 13px;
+    position: relative;
+    transition: var(--transition);
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: var(--white);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: var(--transition);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--primary);
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+    left: 26px;
+}
+
+.toggle-label {
+    font-size: 0.9375rem;
+    color: var(--gray-700);
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-row span {
+    color: var(--gray-500);
+}
+
+.info-row strong {
+    color: var(--gray-800);
+}
+
+@media (max-width: 768px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

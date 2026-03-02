@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}{{ symbol }} - Hisse Detay - TLG Analiz Pro{% endblock %}
+
+{% block extra_css %}
+<style>
+.stock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.stock-info h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+.stock-info .subtitle {
+    color: var(--gray-500);
+    font-size: 0.9375rem;
+}
+
+.stock-price {
+    text-align: right;
+}
+
+.stock-price .price {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.stock-price .change {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.stock-price .change.up {
+    color: var(--success);
+}
+
+.stock-price .change.down {
+    color: var(--danger);
+}
+
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin-bottom: 1.5rem;
+}
+
+.analysis-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.analysis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.analysis-decision {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.analysis-confidence {
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.analysis-item {
+    background: rgba(255,255,255,0.1);
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.analysis-item label {
+    display: block;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-bottom: 0.25rem;
+}
+
+.analysis-item value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.analysis-reasons {
+    background: rgba(255,255,255,0.1);
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+}
+
+.analysis-reasons h4 {
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+}
+
+.analysis-reasons ul {
+    list-style: none;
+    font-size: 0.875rem;
+}
+
+.analysis-reasons li {
+    padding: 0.25rem 0;
+    padding-left: 1.25rem;
+    position: relative;
+}
+
+.analysis-reasons li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--success-light);
+}
+
+.indicators-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.indicator-card {
+    background: var(--white);
+    padding: 1.25rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+}
+
+.indicator-card h4 {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.indicator-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.indicator-card .signal {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    margin-top: 0.5rem;
+    display: inline-block;
+    font-weight: 600;
+}
+
+.signal.buy {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.signal.sell {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.signal.neutral {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.action-bar {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-favorite {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.btn-favorite.active {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.prediction-history {
+    margin-top: 1.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-500);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stock-header">
+    <div class="stock-info">
+        <h1>{{ symbol }}</h1>
+        <div class="subtitle">{{ data.info.name if data else 'Yükleniyor...' }}</div>
+    </div>
+    <div class="stock-price">
+        <div class="price">{{ "%.2f"|format(data.current) if data else '0.00' }} ₺</div>
+        <div class="change {% if data and data.change > 0 %}up{% elif data and data.change < 0 %}down{% endif %}">
+            <i class="fas fa-{{ 'arrow-up' if data and data.change > 0 else 'arrow-down' if data and data.change < 0 else 'minus' }}"></i>
+            {{ "%.2f"|format(data.change) if data else '0.00' }}%
+        </div>
+    </div>
+</div>
+
+<!-- Grafik -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-chart-area"></i>
+            Fiyat Grafiği
+        </h3>
+        <div class="period-buttons">
+            <button class="btn btn-sm btn-secondary" onclick="changePeriod('1mo')">1A</button>
+            <button class="btn btn-sm btn-secondary active" onclick="changePeriod('3mo')">3A</button>
+            <button class="btn btn-sm btn-secondary" onclick="changePeriod('6mo')">6A</button>
+            <button class="btn btn-sm btn-secondary" onclick="changePeriod('1y')">1Y</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="chart-container">
+            <canvas id="stockChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% if analysis %}
+<!-- AI Analizi -->
+<div class="analysis-card">
+    <div class="analysis-header">
+        <div class="analysis-decision">{{ analysis.decision }}</div>
+        <div class="analysis-confidence">%{{ analysis.confidence }} Güven</div>
+    </div>
+    
+    <div class="analysis-grid">
+        <div class="analysis-item">
+            <label>Hedef Fiyat</label>
+            <value>{{ "%.2f"|format(analysis.target_price) }} ₺</value>
+        </div>
+        <div class="analysis-item">
+            <label>Stop Loss</label>
+            <value>{{ "%.2f"|format(analysis.stop_loss) }} ₺</value>
+        </div>
+        <div class="analysis-item">
+            <label>Risk/Ödül</label>
+            <value>{{ analysis.risk_reward }}x</value>
+        </div>
+        <div class="analysis-item">
+            <label>Potansiyel</label>
+            <value>+%{{ analysis.potential_gain }}</value>
+        </div>
+    </div>
+    
+    <div class="analysis-reasons">
+        <h4><i class="fas fa-lightbulb"></i> Analiz Nedenleri</h4>
+        <ul>
+            {% for reason in analysis.reasons %}
+            <li>{{ reason }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- İndikatörler -->
+<div class="indicators-grid">
+    <div class="indicator-card">
+        <h4><i class="fas fa-wave-square" style="color: #10b981;"></i> RSI (14)</h4>
+        <div class="value">{{ "%.1f"|format(analysis.indicators.rsi) }}</div>
+        <span class="signal {% if analysis.indicators.rsi < 30 %}buy{% elif analysis.indicators.rsi > 70 %}sell{% else %}neutral{% endif %}">
+            {% if analysis.indicators.rsi < 30 %}AŞIRI SATIM{% elif analysis.indicators.rsi > 70 %}AŞIRI ALIM{% else %}NÖTR{% endif %}
+        </span>
+    </div>
+    
+    <div class="indicator-card">
+        <h4><i class="fas fa-exchange-alt" style="color: #3b82f6;"></i> MACD</h4>
+        <div class="value">{{ "%.3f"|format(analysis.indicators.macd) }}</div>
+        <span class="signal {% if analysis.indicators.macd > analysis.indicators.macd_signal %}buy{% else %}sell{% endif %}">
+            {% if analysis.indicators.macd > analysis.indicators.macd_signal %}ALIM{% else %}SATIM{% endif %}
+        </span>
+    </div>
+    
+    <div class="indicator-card">
+        <h4><i class="fas fa-chart-line" style="color: #f59e0b;"></i> SMA 20/50</h4>
+        <div class="value">{{ "%.2f"|format(analysis.indicators.sma20) }}</div>
+        <span class="signal {% if analysis.indicators.sma20 > analysis.indicators.sma50 %}buy{% else %}sell{% endif %}">
+            {% if analysis.indicators.sma20 > analysis.indicators.sma50 %}YUKARI TREND{% else %}AŞAĞI TREND{% endif %}
+        </span>
+    </div>
+    
+    <div class="indicator-card">
+        <h4><i class="fas fa-bolt" style="color: #6366f1;"></i> ATR (14)</h4>
+        <div class="value">{{ "%.2f"|format(analysis.indicators.atr) }}</div>
+        <span class="signal neutral">VOLATİLİTE</span>
+    </div>
+</div>
+
+<!-- İşlem Butonları -->
+<div class="action-bar">
+    <button onclick="createPrediction()" class="btn btn-primary btn-lg">
+        <i class="fas fa-brain"></i>
+        Tahmin Oluştur
+    </button>
+    <button onclick="toggleFavorite('{{ symbol }}')" class="btn btn-favorite btn-lg {% if is_favorite %}active{% endif %}" id="favBtn">
+        <i class="fas fa-{{ 'star' if is_favorite else 'star-o' }}"></i>
+        {{ 'Favoriden Çıkar' if is_favorite else 'Favoriye Ekle' }}
+    </button>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-chart-line"></i>
+    <p>Analiz yapılıyor...</p>
+</div>
+{% endif %}
+
+<!-- Tahmin Geçmişi -->
+{% if recent_predictions %}
+<div class="card prediction-history">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history"></i>
+            Son Tahminler
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Tahmin</th>
+                        <th>Güven</th>
+                        <th>Hedef</th>
+                        <th>Sonuç</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred in recent_predictions %}
+                    <tr>
+                        <td>{{ pred.predicted_at[:10] }}</td>
+                        <td>
+                            <span class="badge {% if 'AL' in pred.prediction_type %}badge-success{% else %}badge-danger{% endif %}">
+                                {{ pred.prediction_type }}
+                            </span>
+                        </td>
+                        <td>%{{ pred.confidence }}</td>
+                        <td>{{ "%.2f"|format(pred.target_price) }} ₺</td>
+                        <td>
+                            {% if pred.actual_result == 'PENDING' %}
+                            <span class="badge badge-warning">Bekliyor</span>
+                            {% elif pred.actual_result == 'SUCCESS' %}
+                            <span class="badge badge-success">Başarılı</span>
+                            {% elif pred.actual_result == 'FAIL' %}
+                            <span class="badge badge-danger">Başarısız</span>
+                            {% else %}
+                            <span class="badge badge-info">{{ pred.actual_result }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let chart;
+let currentPeriod = '3mo';
+
+// Grafik oluştur
+function createChart(prices) {
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    
+    const labels = prices.map(p => p.date);
+    const data = prices.map(p => p.close);
+    
+    if (chart) {
+        chart.destroy();
+    }
+    
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Kapanış Fiyatı',
+                data: data,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toFixed(2) + ' ₺';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxTicksLimit: 8
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(2) + ' ₺';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Periyot değiştir
+async function changePeriod(period) {
+    currentPeriod = period;
+    
+    // Butonları güncelle
+    document.querySelectorAll('.period-buttons .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Veriyi çek
+    try {
+        const response = await fetch(`/api/stock/{{ symbol }}?period=${period}`);
+        const data = await response.json();
+        
+        if (data.prices) {
+            createChart(data.prices);
+        }
+    } catch (e) {
+        console.error('Grafik hatası:', e);
+    }
+}
+
+// Tahmin oluştur
+async function createPrediction() {
+    try {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
+        
+        const response = await fetch('/api/analyze/{{ symbol }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Tahmin başarıyla oluşturuldu!');
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (result.error || 'Bilinmeyen hata'));
+        }
+    } catch (e) {
+        alert('Bağlantı hatası');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-brain"></i> Tahmin Oluştur';
+    }
+}
+
+// Sayfa yüklendiğinde
+document.addEventListener('DOMContentLoaded', () => {
+    {% if prices %}
+    createChart({{ prices | tojson }});
+    {% endif %}
+});
+</script>
+{% endblock %}

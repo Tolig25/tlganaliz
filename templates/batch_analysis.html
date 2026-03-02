@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}Toplu Analiz - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-search-dollar"></i> Toplu Analiz</h1>
+    <p>Tüm hisseleri tarayarak en iyi fırsatları bulun</p>
+</div>
+
+<div class="analysis-controls">
+    <div class="control-group">
+        <label>Sektör</label>
+        <select id="sectorFilter">
+            <option value="all">Tümü</option>
+            <option value="Bankacılık">Bankacılık</option>
+            <option value="Havacılık">Havacılık</option>
+            <option value="Savunma">Savunma</option>
+            <option value="Holding">Holding</option>
+            <option value="Perakende">Perakende</option>
+            <option value="Sanayi">Sanayi</option>
+            <option value="Kimya">Kimya</option>
+            <option value="Otomotiv">Otomotiv</option>
+        </select>
+    </div>
+    
+    <div class="control-group">
+        <label>Min. Güven (%)</label>
+        <input type="number" id="minConfidence" value="60" min="50" max="95">
+    </div>
+    
+    <button onclick="startAnalysis()" class="btn btn-primary btn-lg" id="analyzeBtn">
+        <i class="fas fa-play"></i>
+        Analizi Başlat
+    </button>
+</div>
+
+<!-- Yükleme Durumu -->
+<div id="loadingState" class="loading-state" style="display: none;">
+    <div class="spinner-large"></div>
+    <p>AI analiz yapıyor, lütfen bekleyin...</p>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+</div>
+
+<!-- Sonuçlar -->
+<div id="resultsContainer" style="display: none;">
+    <div class="results-header">
+        <h3><i class="fas fa-trophy"></i> En İyi 5 Fırsat</h3>
+        <span class="result-count" id="resultCount"></span>
+    </div>
+    
+    <div class="results-grid" id="resultsGrid">
+        <!-- Sonuçlar buraya gelecek -->
+    </div>
+</div>
+
+<style>
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-header h1 i {
+    color: var(--success);
+}
+
+.page-header p {
+    color: var(--gray-500);
+}
+
+.analysis-controls {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.control-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.control-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.control-group select,
+.control-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 0.9375rem;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 3rem;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+}
+
+.spinner-large {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.progress-bar {
+    width: 100%;
+    max-width: 400px;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: 4px;
+    margin: 1rem auto 0;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.results-header h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.result-count {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.results-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.result-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary);
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.result-card.rank-1 {
+    border-left-color: gold;
+    background: linear-gradient(135deg, var(--white) 0%, rgba(255, 215, 0, 0.05) 100%);
+}
+
+.result-card.rank-2 {
+    border-left-color: silver;
+    background: linear-gradient(135deg, var(--white) 0%, rgba(192, 192, 192, 0.05) 100%);
+}
+
+.result-card.rank-3 {
+    border-left-color: #cd7f32;
+    background: linear-gradient(135deg, var(--white) 0%, rgba(205, 127, 50, 0.05) 100%);
+}
+
+.result-info h4 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+.result-info .name {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin-bottom: 0.5rem;
+}
+
+.result-info .reasons {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.result-info .reasons i {
+    color: var(--warning);
+    margin-right: 0.5rem;
+}
+
+.result-metrics {
+    text-align: center;
+}
+
+.result-metrics .confidence {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.result-metrics .confidence-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+}
+
+.result-potential {
+    text-align: right;
+}
+
+.result-potential .potential {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.result-potential .potential-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.result-potential .risk-reward {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .result-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .result-potential {
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+async function startAnalysis() {
+    const btn = document.getElementById('analyzeBtn');
+    const loading = document.getElementById('loadingState');
+    const results = document.getElementById('resultsContainer');
+    const progressFill = document.getElementById('progressFill');
+    
+    // UI güncelle
+    btn.disabled = true;
+    loading.style.display = 'block';
+    results.style.display = 'none';
+    
+    // Progress animasyonu
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        progressFill.style.width = progress + '%';
+    }, 500);
+    
+    try {
+        const response = await fetch('/api/batch_analyze', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                sector: document.getElementById('sectorFilter').value,
+                min_confidence: parseInt(document.getElementById('minConfidence').value)
+            })
+        });
+        
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayResults(data.results, data.count);
+        } else {
+            alert('Hata: ' + (data.error || 'Analiz yapılamadı'));
+        }
+        
+    } catch (e) {
+        alert('Bağlantı hatası');
+    } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
+}
+
+function displayResults(results, count) {
+    const container = document.getElementById('resultsContainer');
+    const grid = document.getElementById('resultsGrid');
+    const countEl = document.getElementById('resultCount');
+    
+    countEl.textContent = `${count} hisse bulundu`;
+    
+    if (results.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <p>Kriterlere uygun hisse bulunamadı.</p>
+                <p>Min. güven seviyesini düşürmeyi deneyin.</p>
+            </div>
+        `;
+    } else {
+        grid.innerHTML = results.map((r, index) => `
+            <div class="result-card rank-${index + 1}">
+                <div class="result-info">
+                    <h4>#${index + 1} ${r.symbol}</h4>
+                    <div class="name">${r.name}</div>
+                    <div class="reasons">
+                        <i class="fas fa-lightbulb"></i>
+                        ${r.reasons.join(', ')}
+                    </div>
+                </div>
+                <div class="result-metrics">
+                    <div class="confidence">%${r.confidence}</div>
+                    <div class="confidence-label">Güven</div>
+                </div>
+                <div class="result-potential">
+                    <div class="potential">+%${r.potential}%</div>
+                    <div class="potential-label">Potansiyel</div>
+                    <div class="risk-reward">R/O: ${r.risk_reward}x</div>
+                </div>
+                <div style="grid-column: 1 / -1; margin-top: 1rem;">
+                    <a href="/stock/${r.symbol}" class="btn btn-primary btn-block">
+                        <i class="fas fa-chart-bar"></i>
+                        Detayları Gör
+                    </a>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    container.style.display = 'block';
+}
+</script>
+{% endblock %}

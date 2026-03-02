@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Ana Sayfa - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <div class="hero-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <h1>TLG Analiz Pro</h1>
+        <p class="hero-subtitle">Yapay Zeka Destekli Borsa Analiz Platformu</p>
+        <p class="hero-description">
+            Gerçek zamanlı BIST verileri, teknik indikatörler ve kendini sürekli geliştiren AI motoru ile 
+            en doğru tahminleri alın.
+        </p>
+        
+        <div class="hero-features">
+            <div class="feature-item">
+                <i class="fas fa-robot"></i>
+                <span>Yapay Zeka Analizi</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-bolt"></i>
+                <span>Gerçek Zamanlı Veri</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-mobile-alt"></i>
+                <span>Mobil Uyumlu</span>
+            </div>
+        </div>
+        
+        <div class="hero-buttons">
+            <a href="/login" class="btn btn-primary btn-lg">
+                <i class="fas fa-sign-in-alt"></i>
+                Giriş Yap
+            </a>
+            <a href="/register" class="btn btn-secondary btn-lg">
+                <i class="fas fa-user-plus"></i>
+                Kayıt Ol
+            </a>
+        </div>
+    </div>
+    
+    <div class="hero-stats">
+        <div class="stat-card">
+            <i class="fas fa-chart-bar"></i>
+            <span class="stat-number">100+</span>
+            <span class="stat-label">Hisse Senedi</span>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-brain"></i>
+            <span class="stat-number">AI</span>
+            <span class="stat-label">Akıllı Analiz</span>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-clock"></i>
+            <span class="stat-number">7/24</span>
+            <span class="stat-label">Takip</span>
+        </div>
+    </div>
+</div>
+
+<style>
+.hero-section {
+    min-height: calc(100vh - 150px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 600px;
+    margin-bottom: 3rem;
+}
+
+.hero-icon {
+    font-size: 4rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.hero-content h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.hero-description {
+    color: var(--gray-500);
+    margin-bottom: 2rem;
+    line-height: 1.7;
+}
+
+.hero-features {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.feature-item i {
+    color: var(--primary);
+    font-size: 1.25rem;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.hero-stats {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.stat-card {
+    background: var(--white);
+    padding: 1.5rem 2rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+    transition: var(--transition);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card i {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+@media (max-width: 768px) {
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-features {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+    }
+    
+    .hero-buttons .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

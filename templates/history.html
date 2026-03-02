@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}İşlem Geçmişi - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-history"></i> İşlem Geçmişi</h1>
+    <p>Tüm işlemleriniz ve AI tahmin kayıtları</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list-alt"></i>
+            İşlemler ({{ transactions|length }})
+        </h3>
+    </div>
+    <div class="card-body">
+        {% if transactions %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Hisse</th>
+                        <th>İşlem Tipi</th>
+                        <th>Miktar</th>
+                        <th>Fiyat</th>
+                        <th>Tutar</th>
+                        <th>Notlar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trans in transactions %}
+                    <tr>
+                        <td>{{ trans.transaction_date[:16] if trans.transaction_date else '-' }}</td>
+                        <td>
+                            <strong>{{ trans.stock_symbol }}</strong>
+                            {% if trans.stock_name %}
+                            <div class="stock-name-small">{{ trans.stock_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if 'AI_TAHMIN' in trans.transaction_type %}
+                            <span class="badge badge-info">
+                                <i class="fas fa-robot"></i>
+                                AI Tahmin
+                            </span>
+                            <div class="prediction-type">{{ trans.transaction_type.replace('AI_TAHMIN_', '') }}</div>
+                            {% else %}
+                            <span class="badge badge-secondary">{{ trans.transaction_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ trans.quantity or '-' }}</td>
+                        <td>{{ "%.2f"|format(trans.price) if trans.price else '-' }} ₺</td>
+                        <td>{{ "%.2f"|format(trans.total_amount) if trans.total_amount else '-' }} ₺</td>
+                        <td class="notes-cell">{{ trans.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>Henüz işlem kaydınız bulunmuyor.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+}
+
+.page-header p {
+    color: var(--gray-500);
+}
+
+.prediction-type {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    margin-top: 0.25rem;
+}
+
+.notes-cell {
+    max-width: 200px;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.stock-name-small {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-500);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+    .table th:nth-child(4),
+    .table td:nth-child(4),
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        display: none;
+    }
+}
+</style>
+{% endblock %}

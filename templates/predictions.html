@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Tahminlerim - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-brain"></i> Tahminlerim</h1>
+    <p>Yapay zeka destekli hisse tahminlerinizi takip edin</p>
+</div>
+
+<!-- Aktif Tahminler -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-clock"></i>
+            Aktif Tahminler ({{ active|length }})
+        </h3>
+    </div>
+    <div class="card-body">
+        {% if active %}
+        <div class="predictions-grid">
+            {% for pred in active %}
+            <div class="prediction-card active">
+                <div class="prediction-header">
+                    <div class="stock-info">
+                        <h4>{{ pred.stock_symbol }}</h4>
+                        <span class="stock-name">{{ pred.stock_name or 'Bilinmiyor' }}</span>
+                    </div>
+                    <span class="prediction-badge {{ 'buy' if 'AL' in pred.prediction_type else 'sell' }}">
+                        {{ pred.prediction_type }}
+                    </span>
+                </div>
+                
+                <div class="prediction-details">
+                    <div class="detail-row">
+                        <span>Güven:</span>
+                        <strong>%{{ pred.confidence }}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Tahmin Fiyatı:</span>
+                        <strong>{{ "%.2f"|format(pred.price_at_prediction) }} ₺</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Hedef:</span>
+                        <strong class="target">{{ "%.2f"|format(pred.target_price) }} ₺</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Stop Loss:</span>
+                        <strong class="stop">{{ "%.2f"|format(pred.stop_loss) }} ₺</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Hedef Tarih:</span>
+                        <strong>{{ pred.target_date[:10] if pred.target_date else '-' }}</strong>
+                    </div>
+                </div>
+                
+                <div class="prediction-reason">
+                    <i class="fas fa-lightbulb"></i>
+                    {{ pred.reason[:100] }}{% if pred.reason|length > 100 %}...{% endif %}
+                </div>
+                
+                <div class="prediction-footer">
+                    <span class="date">
+                        <i class="fas fa-calendar"></i>
+                        {{ pred.predicted_at[:10] }}
+                    </span>
+                    <span class="status pending">Bekliyor</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>Aktif tahmininiz bulunmuyor.</p>
+            <a href="/dashboard" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Hisse Ara
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Geçmiş Tahminler -->
+{% if history %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history"></i>
+            Geçmiş Tahminler (Son 50)
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Hisse</th>
+                        <th>Tahmin</th>
+                        <th>Güven</th>
+                        <th>Giriş</th>
+                        <th>Hedef</th>
+                        <th>Sonuç</th>
+                        <th>Kâr/Zarar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred in history %}
+                    <tr class="{{ 'success-row' if pred.is_success else 'fail-row' }}">
+                        <td>
+                            <strong>{{ pred.stock_symbol }}</strong>
+                            <div class="stock-name-small">{{ pred.stock_name or '' }}</div>
+                        </td>
+                        <td>
+                            <span class="badge {{ 'badge-success' if 'AL' in pred.prediction_type else 'badge-danger' }}">
+                                {{ pred.prediction_type }}
+                            </span>
+                        </td>
+                        <td>%{{ pred.confidence }}</td>
+                        <td>{{ "%.2f"|format(pred.price_at_prediction) }} ₺</td>
+                        <td>{{ "%.2f"|format(pred.target_price) }} ₺</td>
+                        <td>
+                            {% if pred.actual_result == 'SUCCESS' %}
+                            <span class="badge badge-success"><i class="fas fa-check"></i> Başarılı</span>
+                            {% elif pred.actual_result == 'FAIL' %}
+                            <span class="badge badge-danger"><i class="fas fa-times"></i> Başarısız</span>
+                            {% elif pred.actual_result == 'PARTIAL' %}
+                            <span class="badge badge-warning">Kısmi</span>
+                            {% elif pred.actual_result == 'EXPIRED' %}
+                            <span class="badge badge-info">Süre Doldu</span>
+                            {% else %}
+                            <span class="badge badge-secondary">{{ pred.actual_result }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pred.actual_price %}
+                            {% set profit = ((pred.actual_price - pred.price_at_prediction) / pred.price_at_prediction * 100) if 'AL' in pred.prediction_type else ((pred.price_at_prediction - pred.actual_price) / pred.price_at_prediction * 100) %}
+                            <span class="profit {{ 'positive' if profit > 0 else 'negative' }}">
+                                {{ "%.1f"|format(profit) }}%
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-header h1 i {
+    color: var(--primary);
+}
+
+.page-header p {
+    color: var(--gray-500);
+}
+
+.predictions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.prediction-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    border: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.prediction-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.prediction-card.active {
+    border-color: var(--primary);
+}
+
+.prediction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.stock-info h4 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+.stock-name {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.prediction-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.prediction-badge.buy {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.prediction-badge.sell {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.prediction-details {
+    margin-bottom: 1rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 0.875rem;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row span {
+    color: var(--gray-500);
+}
+
+.detail-row strong {
+    color: var(--gray-800);
+}
+
+.detail-row strong.target {
+    color: var(--success);
+}
+
+.detail-row strong.stop {
+    color: var(--danger);
+}
+
+.prediction-reason {
+    background: var(--gray-50);
+    padding: 0.75rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+}
+
+.prediction-reason i {
+    color: var(--warning);
+    margin-right: 0.5rem;
+}
+
+.prediction-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.prediction-footer .date {
+    color: var(--gray-500);
+}
+
+.prediction-footer .status {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.prediction-footer .status.pending {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.success-row {
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.fail-row {
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.profit {
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+}
+
+.profit.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.profit.negative {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.stock-name-small {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-500);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .predictions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

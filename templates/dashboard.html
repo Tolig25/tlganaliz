@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TLG Analiz Pro{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1><i class="fas fa-chart-line"></i> Piyasa Özeti</h1>
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="stockSearch" placeholder="Hisse ara..." autocomplete="off">
+        <div id="searchResults" class="search-results"></div>
+    </div>
+</div>
+
+<!-- İstatistik Kartları -->
+<div class="stats-grid" id="userStats">
+    <div class="stat-card-mini loading">
+        <div class="spinner"></div>
+    </div>
+</div>
+
+<!-- Hisseler Tablosu -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            Aktif Hisseler
+        </h3>
+        <a href="/batch_analysis" class="btn btn-sm btn-primary">
+            <i class="fas fa-search-dollar"></i>
+            Toplu Analiz
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Sembol</th>
+                        <th>İsim</th>
+                        <th>Sektör</th>
+                        <th>Fiyat</th>
+                        <th>Değişim</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in stocks %}
+                    <tr>
+                        <td>
+                            <strong>{{ stock.symbol }}</strong>
+                        </td>
+                        <td>{{ stock.name }}</td>
+                        <td>
+                            <span class="badge badge-info">{{ stock.sector }}</span>
+                        </td>
+                        <td class="price">{{ "%.2f"|format(stock.price) }} ₺</td>
+                        <td>
+                            <span class="change-badge {% if stock.change > 0 %}up{% elif stock.change < 0 %}down{% else %}neutral{% endif %}">
+                                <i class="fas fa-{{ 'arrow-up' if stock.change > 0 else 'arrow-down' if stock.change < 0 else 'minus' }}"></i>
+                                {{ "%.2f"|format(stock.change) }}%
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="/stock/{{ stock.symbol }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-chart-bar"></i>
+                                </a>
+                                <button onclick="toggleFavorite('{{ stock.symbol }}')" class="btn btn-sm btn-icon {% if stock.is_favorite %}active{% endif %}" id="fav-{{ stock.symbol }}">
+                                    <i class="fas fa-{{ 'star' if stock.is_favorite else 'star-o' if stock.is_favorite is defined else 'star' }}"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Hızlı Erişim -->
+<div class="quick-actions">
+    <a href="/predictions" class="quick-card">
+        <i class="fas fa-brain"></i>
+        <span>Tahminlerim</span>
+    </a>
+    <a href="/favorites" class="quick-card">
+        <i class="fas fa-star"></i>
+        <span>Favorilerim</span>
+    </a>
+    <a href="/transaction_history" class="quick-card">
+        <i class="fas fa-history"></i>
+        <span>Geçmiş</span>
+    </a>
+    <a href="/settings" class="quick-card">
+        <i class="fas fa-cog"></i>
+        <span>Ayarlar</span>
+    </a>
+</div>
+
+<style>
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.dashboard-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dashboard-header h1 i {
+    color: var(--primary);
+}
+
+.search-box {
+    position: relative;
+    width: 300px;
+    max-width: 100%;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400);
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 2.75rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 0.9375rem;
+    transition: var(--transition);
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    margin-top: 0.5rem;
+    box-shadow: var(--shadow-lg);
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    z-index: 100;
+}
+
+.search-results.active {
+    display: block;
+}
+
+.search-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-item:hover {
+    background: var(--gray-50);
+}
+
+.search-item:last-child {
+    border-bottom: none;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card-mini {
+    background: var(--white);
+    padding: 1.25rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-card-mini i {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+            align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    background: rgba(102, 126, 234, 0.1);
+    color: var(--primary);
+}
+
+.stat-card-mini.success i {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.stat-card-mini.warning i {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.stat-card-mini.danger i {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.stat-info h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+.stat-info span {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.change-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.change-badge.up {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.change-badge.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.change-badge.neutral {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    background: var(--gray-100);
+    color: var(--gray-400);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: var(--radius);
+}
+
+.btn-icon.active {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.btn-icon.active i {
+    font-weight: 900;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.quick-card {
+    background: var(--white);
+    padding: 1.5rem 1rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    text-align: center;
+    text-decoration: none;
+    color: var(--gray-700);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.quick-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    color: var(--primary);
+}
+
+.quick-card i {
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.quick-card span {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-box {
+        width: 100%;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+        display: none;
+    }
+}
+</style>
+
+<script>
+// İstatistikleri yükle
+async function loadStats() {
+    try {
+        const response = await fetch('/api/stats');
+        const stats = await response.json();
+        
+        const container = document.getElementById('userStats');
+        container.innerHTML = `
+            <div class="stat-card-mini">
+                <i class="fas fa-brain"></i>
+                <div class="stat-info">
+                    <h4>${stats.total_predictions}</h4>
+                    <span>Toplam Tahmin</span>
+                </div>
+            </div>
+            <div class="stat-card-mini success">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-info">
+                    <h4>${stats.success_predictions}</h4>
+                    <span>Başarılı</span>
+                </div>
+            </div>
+            <div class="stat-card-mini warning">
+                <i class="fas fa-clock"></i>
+                <div class="stat-info">
+                    <h4>${stats.pending_predictions}</h4>
+                    <span>Bekleyen</span>
+                </div>
+            </div>
+            <div class="stat-card-mini danger">
+                <i class="fas fa-percentage"></i>
+                <div class="stat-info">
+                    <h4>${stats.success_rate}%</h4>
+                    <span>Başarı Oranı</span>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Stats yüklenemedi:', e);
+    }
+}
+
+// Arama fonksiyonu
+const searchInput = document.getElementById('stockSearch');
+const searchResults = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+        searchResults.classList.remove('active');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+        const stocks = await response.json();
+        
+        if (stocks.length > 0) {
+            searchResults.innerHTML = stocks.map(s => `
+                <div class="search-item" onclick="window.location.href='/stock/${s.symbol}'">
+                    <div>
+                        <strong>${s.symbol}</strong>
+                        <div style="font-size: 0.875rem; color: var(--gray-500);">${s.name}</div>
+                    </div>
+                    <span class="badge badge-info">${s.sector}</span>
+                </div>
+            `).join('');
+            searchResults.classList.add('active');
+        } else {
+            searchResults.innerHTML = '<div class="search-item">Sonuç bulunamadı</div>';
+            searchResults.classList.add('active');
+        }
+    } catch (e) {
+        console.error('Arama hatası:', e);
+    }
+});
+
+// Arama dışına tıklayınca kapat
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-box')) {
+        searchResults.classList.remove('active');
+    }
+});
+
+// Favori toggle
+async function toggleFavorite(symbol) {
+    try {
+        const response = await fetch(`/favorite/${symbol}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            const btn = document.getElementById(`fav-${symbol}`);
+            const icon = btn.querySelector('i');
+            
+            if (result.action === 'added') {
+                btn.classList.add('active');
+                icon.classList.remove('fa-star-o');
+                icon.classList.add('fa-star');
+            } else {
+                btn.classList.remove('active');
+                icon.classList.remove('fa-star');
+                icon.classList.add('fa-star-o');
+            }
+        }
+    } catch (e) {
+        console.error('Favori hatası:', e);
+    }
+}
+
+// Sayfa yüklendiğinde istatistikleri getir
+loadStats();
+</script>
+{% endblock %}
